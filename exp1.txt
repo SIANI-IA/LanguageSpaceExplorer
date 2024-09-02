@@ -1,0 +1,7 @@
+Judit tiene el teléfono 
+Judit tiene el tel 
+Pablo tiene el teléfono 
+Samuel tiene el teléfono 
+<s>[INST] ¿Cuál es el teléfono de Judit? [/INST]
+<s>[INST] ¿Cuál es el teléfono de Pablo? [/INST]
+1+2=
