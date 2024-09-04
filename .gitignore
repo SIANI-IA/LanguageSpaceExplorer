@@ -166,3 +166,4 @@ wandb/
 fine_tuned_model_both_pythia/
 results/
 fine_tuned_model_both_qwen/
+fine_tuned_model_math_*
