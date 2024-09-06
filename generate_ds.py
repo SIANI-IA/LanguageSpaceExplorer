@@ -1,3 +1,4 @@
+import re
 from langchain.llms import OpenAI
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
@@ -12,9 +13,9 @@ warnings.filterwarnings("ignore")
 
 # Constants
 FOLDER = 'data'
-MAX_ITERATIONS = 10  # Maximum number of iterations
+MAX_ITERATIONS = 100  # Maximum number of iterations
 TEMPERATURE = 0.7  # Temperature for the OpenAI model
-DOMAIN = 'sports and technology'  # Domain for the OpenAI model sports and technology
+DOMAIN = 'sports'  # Domain for the OpenAI model sports and technology
 PROMPT_TEMPLATE = """
 Generate {len} phrases about {domain}, each with no more than 10 words.
 """  # Fixed prompt template
@@ -44,9 +45,13 @@ for _ in tqdm.tqdm(range(MAX_ITERATIONS), desc="Generating phrases"):
 
     # Separate the phrases by line if they are not already separated (optional, depending on the original output)
     phrases = output.split("\n")
+    # delete numbers and special characters
+    phrases = [re.sub(r'\W+', ' ', phrase) for phrase in phrases]
+    phrases = [re.sub(r'\d+', '', phrase) for phrase in phrases]
 
     # Create a list with the structure {"text": ---}
     data += [{"text": phrase.strip()} for phrase in phrases if phrase.strip()]
+    
 
 # Save the result to a JSON file
 with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
