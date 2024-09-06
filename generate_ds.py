@@ -12,11 +12,11 @@ warnings.filterwarnings("ignore")
 
 # Constants
 FOLDER = 'data'
-MAX_ITERATIONS = 100  # Maximum number of iterations
+MAX_ITERATIONS = 10  # Maximum number of iterations
 TEMPERATURE = 0.7  # Temperature for the OpenAI model
-DOMAIN = 'technology'  # Domain for the OpenAI model sports and technology
+DOMAIN = 'sports and technology'  # Domain for the OpenAI model sports and technology
 PROMPT_TEMPLATE = """
-Generate {len} phrases about {domain}, each with no more than 50 words.
+Generate {len} phrases about {domain}, each with no more than 10 words.
 """  # Fixed prompt template
 OUTPUT_NAME = f'{"_".join(DOMAIN.split())}_phrases.json'  # Output file name
 OUTPUT_FILE = os.path.join(FOLDER, OUTPUT_NAME)
