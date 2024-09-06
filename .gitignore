@@ -161,10 +161,8 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 data/
-fine_tuned_model_both/
 wandb/
-fine_tuned_model_both_pythia/
 results/
-fine_tuned_model_both_qwen/
-fine_tuned_model_math_*
 lightning_logs/
+models/
+utils_keys.py
