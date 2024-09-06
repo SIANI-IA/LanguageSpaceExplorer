@@ -11,10 +11,10 @@ import warnings
 warnings.filterwarnings("ignore")
 
 # Constants
-FOLDER = 'results'
-MAX_ITERATIONS = 10  # Maximum number of iterations
+FOLDER = 'data'
+MAX_ITERATIONS = 100  # Maximum number of iterations
 TEMPERATURE = 0.7  # Temperature for the OpenAI model
-DOMAIN = 'sports and technology'  # Domain for the OpenAI model sports and technology
+DOMAIN = 'technology'  # Domain for the OpenAI model sports and technology
 PROMPT_TEMPLATE = """
 Generate {len} phrases about {domain}, each with no more than 50 words.
 """  # Fixed prompt template
