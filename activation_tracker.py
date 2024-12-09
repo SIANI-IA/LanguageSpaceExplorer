@@ -23,21 +23,6 @@ from collections import defaultdict
 
 print("Device:", device)
 
-class TransformerActivationTracker:
-
-    def __init__(self):
-        self.db = defaultdict(defaultdict)
-        self.db["activations"] = {
-            "layers": [],
-            "domain": []
-        }
-        self.db["state"] = {
-            "layers": [],
-            "domain": []
-        }
-
-
-
 
 def load_model_and_tokenizer(model_name: str) -> Tuple:
     tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -76,22 +61,14 @@ def process_activations(samples: List[str], model: HookedTransformer, tokenizer,
         db_activations["tokens"].append(ids)
         
         _, activations = model.run_with_cache(text)
-        
-        vector = {
-            "activations": [],
-            "embeddings": activations[f'hook_embed'].cpu().numpy(),
-            "states": []
-        }
+        db_activations["embeddings"].append(activations[f'hook_embed'].cpu().numpy())
+    
         
         for layer in range(num_layers):
             block_act_fn = np.squeeze(activations[f'blocks.{layer}.mlp.hook_post'].cpu().numpy(), axis=0)
-            vector["activations"].append(block_act_fn)
+            db_activations[f"mlp_act_{layer}"].append(block_act_fn)
             block_state_fn = np.squeeze(activations[f'blocks.{layer}.hook_resid_post'].cpu().numpy(), axis=0)
-            vector["states"].append(block_state_fn)
-
-        db_activations["mlp_act"].append(vector["activations"])
-        db_activations["states"].append(vector["states"])
-        db_activations["embeddings"].append(vector["embeddings"])
+            db_activations[f"states_{layer}"].append(block_state_fn)
 
     return db_activations 
 
@@ -106,12 +83,13 @@ if __name__ == "__main__":
     activation_tracker_dataset["language"] = []
     activation_tracker_dataset["tokens"] = []
     activation_tracker_dataset["embeddings"] = []
-    activation_tracker_dataset["mlp_act"] = []
-    activation_tracker_dataset["states"] = []
     # Load the model and tokenizer
     tokenizer, model = load_model_and_tokenizer(MODEL_NAME)
-    print("Model and tokenizer loaded")
     num_layers = model.config.num_hidden_layers
+    print(f"Model and tokenizer loaded with {num_layers} layers")
+    for layer in range(num_layers):
+        activation_tracker_dataset[f"mlp_act_{layer}"] = []
+        activation_tracker_dataset[f"states_{layer}"]  = []
 
     # Transform the model and tokenizer to the lens input
     model_hooked = transform_to_lens_input(tokenizer, MODEL_NAME)
@@ -130,6 +108,11 @@ if __name__ == "__main__":
             task_name=lang,
         )
 
+    # to pandas
+    activation_tracker_dataset_df = pd.DataFrame(activation_tracker_dataset)
+    print(activation_tracker_dataset_df.head())
+
+
     # Save the activations database in pkl
-    with open("data/02-processed/activations.pkl", "wb") as f:
-        pickle.dump(activation_tracker_dataset, f)
+    with open("data/02-processed/activation_tracker.pkl", "wb") as f:
+        pickle.dump(activation_tracker_dataset_df, f)
