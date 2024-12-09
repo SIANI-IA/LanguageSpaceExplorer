@@ -23,6 +23,22 @@ from collections import defaultdict
 
 print("Device:", device)
 
+class TransformerActivationTracker:
+
+    def __init__(self):
+        self.db = defaultdict(defaultdict)
+        self.db["activations"] = {
+            "layers": [],
+            "domain": []
+        }
+        self.db["state"] = {
+            "layers": [],
+            "domain": []
+        }
+
+
+
+
 def load_model_and_tokenizer(model_name: str) -> Tuple:
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForCausalLM.from_pretrained(model_name)
@@ -37,7 +53,7 @@ def transform_to_lens_input(tokenizer, model_base: str, model_ft: PreTrainedMode
         move_to_device=True
     )
 
-def process_activations(samples: List[str], model: HookedTransformer, num_layers: int, db_activations: defaultdict, task_name: int = None):
+def process_activations(samples: List[str], model: HookedTransformer, tokenizer, num_layers: int, db_activations: defaultdict, task_name: str = None):
     """
     Process activations for a list of samples using a model and store the results in the provided activations database.
 
@@ -53,14 +69,29 @@ def process_activations(samples: List[str], model: HookedTransformer, num_layers
     """
     
     for text in tqdm(samples, desc="Processing DB"):
+        
+        db_activations["text"].append(text)
+        db_activations["language"].append(task_name)
+        ids = tokenizer(text, return_tensors="pt")["input_ids"][0].cpu().numpy()
+        db_activations["tokens"].append(ids)
+        
         _, activations = model.run_with_cache(text)
-        vector = []
+        
+        vector = {
+            "activations": [],
+            "embeddings": activations[f'hook_embed'].cpu().numpy(),
+            "states": []
+        }
+        
         for layer in range(num_layers):
-            block_act_fn = activations[f'blocks.{layer}.mlp.hook_post']
-            vector.append(block_act_fn)
-        vector = torch.cat(vector, dim=0).flatten().cpu().numpy()
-        db_activations["activations"].append(vector)
-        db_activations["task"].append(task_name)
+            block_act_fn = np.squeeze(activations[f'blocks.{layer}.mlp.hook_post'].cpu().numpy(), axis=0)
+            vector["activations"].append(block_act_fn)
+            block_state_fn = np.squeeze(activations[f'blocks.{layer}.hook_resid_post'].cpu().numpy(), axis=0)
+            vector["states"].append(block_state_fn)
+
+        db_activations["mlp_act"].append(vector["activations"])
+        db_activations["states"].append(vector["states"])
+        db_activations["embeddings"].append(vector["embeddings"])
 
     return db_activations 
 
@@ -70,6 +101,13 @@ FOLDER = "data/01-raw/phrases_with_languages.csv"
 if __name__ == "__main__":
     # Load the dataset
     dataset = pd.read_csv(FOLDER)
+    activation_tracker_dataset = defaultdict()
+    activation_tracker_dataset["text"] = []
+    activation_tracker_dataset["language"] = []
+    activation_tracker_dataset["tokens"] = []
+    activation_tracker_dataset["embeddings"] = []
+    activation_tracker_dataset["mlp_act"] = []
+    activation_tracker_dataset["states"] = []
     # Load the model and tokenizer
     tokenizer, model = load_model_and_tokenizer(MODEL_NAME)
     print("Model and tokenizer loaded")
@@ -79,15 +117,19 @@ if __name__ == "__main__":
     model_hooked = transform_to_lens_input(tokenizer, MODEL_NAME)
     print("Model transformed to lens input")
 
-    db_activations = defaultdict(list)
-    db_activations["activations"] = []
-    db_activations["task"] = []
-
     language = dataset["Language"].unique()
-    for idx, lang in enumerate(language):
+    for lang in language:
         dataset_lang = dataset[dataset["Language"] == lang]
         print("Language:", lang)
-        db_activations = process_activations(dataset_lang["Phrase"].tolist(), model_hooked, num_layers, db_activations, task_name=idx)
+        db_activations = process_activations(
+            dataset_lang["Phrase"].tolist(), 
+            model_hooked,
+            tokenizer,
+            num_layers, 
+            activation_tracker_dataset, 
+            task_name=lang,
+        )
 
-    print(db_activations['activations'][0].shape)
-    print("Activations processed")
+    # Save the activations database in pkl
+    with open("data/02-processed/activations.pkl", "wb") as f:
+        pickle.dump(activation_tracker_dataset, f)
