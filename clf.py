@@ -1,4 +1,5 @@
 import argparse
+import os
 import pandas as pd
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
@@ -180,7 +181,9 @@ if __name__ == "__main__":
         wandb.log({"tsne_plot": wandb.Image(plt)})
     
     #save plot
-    plt.savefig(f"plots/{args.object_of_study}_layer_{args.layer}_tsne.png")
+    os.makedirs("plots", exist_ok=True)
+    os.makedirs(f"plots/{args.object_of_study}", exist_ok=True)
+    plt.savefig(f"plots/{args.object_of_study}/{args.object_of_study}_layer_{args.layer}_tsne.png")
     plt.close()
     
     

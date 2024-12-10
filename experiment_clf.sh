@@ -2,7 +2,7 @@
 
 #list of layer 0 - 15
 layer=(0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15)
-object_of_study="mlp_act"
+object_of_study="states"
 use_wandb=True
 
 for i in ${layer[@]}
