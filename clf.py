@@ -22,6 +22,7 @@ def parse_args():
     parser.add_argument("--layer", type=int, default=1, help="Layer to analyze.")
     parser.add_argument("--seed", type=int, default=2024, help="Random seed.")
     parser.add_argument("--hidden_size", type=int, default=512, help="Hidden layer size.")
+    parser.add_argument("--inner_size", type=int, default=128, help="Inner layer size.")
     parser.add_argument("--batch_size", type=int, default=8, help="Batch size.")
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate.")
     parser.add_argument("--val_split", type=float, default=0.1, help="Validation split ratio.")
@@ -57,12 +58,12 @@ def create_dataloaders(activations, tasks, batch_size=8, val_split=0.1):
     return train_loader, val_loader
 
 class MLPClassifier(pl.LightningModule):
-    def __init__(self, input_size, num_classes, hidden_size=128, lr=1e-3):
+    def __init__(self, input_size, num_classes, hidden_size = 512, inner_size = 128, lr = 1e-3):
         super(MLPClassifier, self).__init__()
         self.lr  = lr
         self.fc1 = nn.Linear(input_size, hidden_size)
-        self.fc2 = nn.Linear(hidden_size, hidden_size)
-        self.fc3 = nn.Linear(hidden_size, num_classes)
+        self.fc2 = nn.Linear(hidden_size, inner_size)
+        self.fc3 = nn.Linear(inner_size, num_classes)
         task     = "classification" if num_classes > 2 else "binary"
         
         # Métricas
@@ -177,9 +178,11 @@ if __name__ == "__main__":
     # to wandb
     if args.use_wandb:
         wandb.log({"tsne_plot": wandb.Image(plt)})
-        plt.close()
-    else:
-        plt.show()
+    
+    #save plot
+    plt.savefig(f"plots/{args.object_of_study}_layer_{args.layer}_tsne.png")
+    plt.close()
+    
     
 
 
